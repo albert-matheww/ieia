@@ -1,0 +1,104 @@
+# =============================================================================
+# IEIA backend — default configuration (local development)
+# Every value can be overridden by an environment variable (see .env.example).
+# The "docker" profile (application-docker.yml) adjusts hosts for compose.
+# =============================================================================
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    include-message: always
+    include-binding-errors: always
+
+spring:
+  application:
+    name: ieia-backend
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/ieia}
+    username: ${SPRING_DATASOURCE_USERNAME:ieia}
+    password: ${SPRING_DATASOURCE_PASSWORD:ieia}
+    hikari:
+      maximum-pool-size: 10
+      pool-name: ieia-pool
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate          # Flyway owns the schema; Hibernate only validates
+    properties:
+      hibernate:
+        jdbc.time_zone: UTC
+        format_sql: false
+    show-sql: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+  threads:
+    virtual:
+      enabled: true
+
+# ---- Application-specific settings (bound in config/AppProperties) ----
+ieia:
+  jwt:
+    secret: ${JWT_SECRET:dev-only-insecure-secret-change-me-0123456789abcdef0123456789abcdef}
+    access-ttl-seconds: ${JWT_ACCESS_TTL_SECONDS:900}
+    refresh-ttl-seconds: ${JWT_REFRESH_TTL_SECONDS:604800}
+    issuer: ieia
+  cors:
+    allowed-origin: ${FRONTEND_ORIGIN:http://localhost:5173}
+  ml:
+    base-url: ${ML_SERVICE_URL:http://localhost:8000}
+    token: ${ML_SERVICE_TOKEN:dev-ml-token}
+    timeout-ms: ${ML_SERVICE_TIMEOUT_MS:8000}
+  llm:
+    provider: ${IEIA_LLM_PROVIDER:MOCK}          # MOCK | OPENAI | ANTHROPIC | OLLAMA
+    model: ${IEIA_LLM_MODEL:mock-analyst-v1}
+    timeout-ms: ${IEIA_LLM_TIMEOUT_MS:20000}
+    max-tokens: ${IEIA_LLM_MAX_TOKENS:800}
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      base-url: ${OPENAI_BASE_URL:https://api.openai.com/v1}
+    anthropic:
+      api-key: ${ANTHROPIC_API_KEY:}
+      base-url: ${ANTHROPIC_BASE_URL:https://api.anthropic.com}
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+  seed:
+    demo: ${IEIA_SEED_DEMO:true}
+  reports:
+    output-dir: ${REPORT_OUTPUT_DIR:./reports-output}
+    async: ${IEIA_REPORTS_ASYNC:true}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  info:
+    env:
+      enabled: true
+info:
+  app:
+    name: IEIA Backend
+    version: 1.0.0
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+  api-docs:
+    path: /v3/api-docs
+
+logging:
+  level:
+    root: INFO
+    com.ieia: DEBUG
+    org.flywaydb: INFO
+    org.springframework.web: INFO

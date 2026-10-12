@@ -1,0 +1,49 @@
+# ---- Secrets ----
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ---- Java / Spring Boot ----
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+*.class
+hs_err_pid*
+
+# ---- Node / React ----
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+npm-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ---- Python / ML service ----
+ml-service/.venv/
+ml-service/venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+ml-service/artifacts/*.pkl
+
+# ---- Docker / data volumes ----
+docker/volumes/
+pgdata/
+reports-output/
+
+# ---- IDE / OS ----
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# ---- Build / test output ----
+coverage/
+*.log
+
+# ---- Local tooling ----
+.claude/

@@ -1,0 +1,106 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  IEIA — "monitoring station" theme.
+  Every measured value is set in IBM Plex Mono, like a readout on an instrument.
+  Light = warm paper; dark = deep ink-green. One amber signal accent, used sparingly.
+*/
+:root {
+  --surface: 246 244 239;      /* paper */
+  --surface-2: 252 251 248;
+  --surface-3: 239 236 228;
+  --line: 214 209 197;
+  --content: 20 32 28;         /* ink */
+  --content-muted: 74 92 84;
+  --content-dim: 122 134 126;
+  --brand: 45 106 79;          /* moss */
+  --brand-strong: 27 67 50;    /* pine */
+  --positive: 45 106 79;
+  --negative: 176 74 52;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --surface: 18 27 24;
+  --surface-2: 25 36 32;
+  --surface-3: 33 46 41;
+  --line: 44 60 54;
+  --content: 232 236 231;
+  --content-muted: 165 179 170;
+  --content-dim: 120 135 127;
+  --brand: 116 176 148;
+  --brand-strong: 150 199 174;
+  --positive: 116 176 148;
+  --negative: 224 130 108;
+  color-scheme: dark;
+}
+
+* { border-color: rgb(var(--line)); }
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  background: rgb(var(--surface));
+  color: rgb(var(--content));
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+@layer components {
+  /* instrument-label: small uppercase caption, like a panel label */
+  .label-inst {
+    @apply font-mono text-[10.5px] font-medium uppercase tracking-[0.14em] text-content-dim;
+  }
+  /* readout: monospace measured value */
+  .readout { @apply font-mono tabular-nums text-content; }
+
+  .card {
+    @apply rounded-md border border-line bg-surface-2 shadow-card;
+  }
+  .card-accent {
+    /* a hairline top rule in a category color — set via style={{ '--rule': ... }} */
+    border-top: 2px solid var(--rule, rgb(var(--brand)));
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded font-medium transition-colors
+           disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2
+           focus-visible:outline-offset-2 focus-visible:outline-brand;
+  }
+  .btn-md { @apply h-9 px-3.5 text-[13px]; }
+  .btn-sm { @apply h-8 px-3 text-[12px]; }
+  .btn-primary { @apply bg-brand-strong text-paper hover:bg-pine dark:text-ink; }
+  .btn-ghost { @apply border border-line bg-transparent text-content hover:bg-surface-3; }
+  .btn-danger { @apply border border-line text-negative hover:bg-negative/10; }
+
+  .field {
+    @apply h-9 w-full rounded border border-line bg-surface px-3 text-[13px] text-content
+           placeholder:text-content-dim focus:border-brand focus:outline-none;
+  }
+  .field-label { @apply label-inst mb-1.5 block; }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-line px-2.5 py-1
+           font-mono text-[10.5px] uppercase tracking-wider;
+  }
+
+  .nav-link {
+    @apply flex items-center gap-3 rounded px-3 py-2 text-[13px] font-medium text-content-muted
+           transition-colors hover:bg-surface-3 hover:text-content;
+  }
+  .nav-link-active { @apply bg-surface-3 text-content; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}
+
+/* recharts: inherit theme colors for axes/grid */
+.recharts-cartesian-axis-tick text { fill: rgb(var(--content-dim)); font-size: 11px; }
+.recharts-cartesian-grid line { stroke: rgb(var(--line)); }
+.recharts-tooltip-wrapper { outline: none; }

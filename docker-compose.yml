@@ -1,0 +1,126 @@
+# =============================================================================
+# IEIA — full stack orchestration
+#   db          PostgreSQL 16 (system of record)
+#   ml-service  FastAPI ML tier (stateless: prediction, anomaly, analytics)
+#   backend     Spring Boot API (domain, security, calculation, orchestration)
+#   frontend    React SPA served by nginx
+#   adminer     DB browser (dev convenience; remove for production)
+#
+#   Boot:  cp .env.example .env  &&  docker compose up --build
+#   The backend applies Flyway migrations (V1 schema, V2 reference data) on start
+#   and — when IEIA_SEED_DEMO=true — loads the demo dataset.
+# =============================================================================
+
+name: ieia
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  ml-service:
+    build:
+      context: ./ml-service
+      dockerfile: Dockerfile
+    environment:
+      ML_SERVICE_TOKEN: ${ML_SERVICE_TOKEN}
+      ML_RANDOM_SEED: ${ML_RANDOM_SEED}
+      LOG_LEVEL: INFO
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; urllib.request.urlopen('http://localhost:8000/health'); sys.exit(0)"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+      ml-service:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      SERVER_PORT: ${SERVER_PORT:-8080}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ACCESS_TTL_SECONDS: ${JWT_ACCESS_TTL_SECONDS:-900}
+      JWT_REFRESH_TTL_SECONDS: ${JWT_REFRESH_TTL_SECONDS:-604800}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
+      IEIA_SEED_DEMO: ${IEIA_SEED_DEMO:-true}
+      ML_SERVICE_URL: ${ML_SERVICE_URL:-http://ml-service:8000}
+      ML_SERVICE_TOKEN: ${ML_SERVICE_TOKEN}
+      ML_SERVICE_TIMEOUT_MS: ${ML_SERVICE_TIMEOUT_MS:-8000}
+      IEIA_LLM_PROVIDER: ${IEIA_LLM_PROVIDER:-MOCK}
+      IEIA_LLM_MODEL: ${IEIA_LLM_MODEL:-mock-analyst-v1}
+      IEIA_LLM_TIMEOUT_MS: ${IEIA_LLM_TIMEOUT_MS:-20000}
+      IEIA_LLM_MAX_TOKENS: ${IEIA_LLM_MAX_TOKENS:-800}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-https://api.anthropic.com}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      REPORT_OUTPUT_DIR: ${REPORT_OUTPUT_DIR:-/data/reports}
+    ports:
+      - "8080:8080"
+    volumes:
+      - reports:/data/reports
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:8080/actuator/health | grep -q UP"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Same origin — nginx in this container proxies /api -> backend:8080.
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:80/"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "5173:80"
+    restart: unless-stopped
+
+  adminer:
+    image: adminer:4
+    profiles: ["dev"]
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8081:8080"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  reports:

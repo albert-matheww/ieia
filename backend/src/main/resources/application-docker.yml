@@ -1,0 +1,20 @@
+# =============================================================================
+# IEIA backend — "docker" profile overrides (activated by SPRING_PROFILES_ACTIVE=docker)
+# Hosts resolve to compose service names. Secrets still come from the environment.
+# =============================================================================
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://db:5432/ieia}
+
+ieia:
+  ml:
+    base-url: ${ML_SERVICE_URL:http://ml-service:8000}
+  llm:
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://host.docker.internal:11434}
+  reports:
+    output-dir: ${REPORT_OUTPUT_DIR:/data/reports}
+
+logging:
+  level:
+    com.ieia: INFO
